@@ -312,6 +312,13 @@
             <input type="range" id="sensitivity" min="10" max="80" value="30">
         </div>
 
+        <div class="sensitivity-control">
+            <label class="sensitivity-label" for="silence">
+                Pause entre phrases : <span id="silenceValue">2.0</span>s
+            </label>
+            <input type="range" id="silence" min="10" max="40" value="20">
+        </div>
+
         <button id="permissionBtn" class="permission-btn" style="display: none;">
             📱 Autoriser le microphone
         </button>
@@ -369,6 +376,8 @@
         const visualizer = document.getElementById('visualizer');
         const sensitivitySlider = document.getElementById('sensitivity');
         const sensitivityValue = document.getElementById('sensitivityValue');
+        const silenceSlider = document.getElementById('silence');
+        const silenceValue = document.getElementById('silenceValue');
         const errorMessage = document.getElementById('errorMessage');
         const debugInfo = document.getElementById('debugInfo');
 
@@ -406,6 +415,17 @@
         sensitivitySlider.addEventListener('input', (e) => {
             sensitivityValue.textContent = e.target.value;
         });
+
+        // Gestion du délai de silence
+        silenceSlider.addEventListener('input', (e) => {
+            const value = e.target.value / 10;
+            silenceValue.textContent = value.toFixed(1);
+        });
+
+        // Fonction pour obtenir le délai de silence en millisecondes
+        function getSilenceDelay() {
+            return (parseInt(silenceSlider.value) / 10) * 1000;
+        }
 
         // Formatage du temps
         function formatTime(seconds) {
@@ -480,7 +500,7 @@
                                 isSpeaking = false;
                                 showDebug(`Proclamation comptée! Total: ${count}`);
                             }
-                        }, 800); // Délai de 800ms de silence avant de compter
+                        }, getSilenceDelay()); // Utilise le délai configurable
                     }
                 }
             };
