@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Compteur de Proclamations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            touch-action: manipulation;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .error-message {
+            display: none;
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .status.idle {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.recording {
+            background: #e8f5e9;
+            color: #388e3c;
+            animation: pulse 2s infinite;
+        }
+
+        .status.paused {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .visualizer {
+            height: 80px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .visualizer-bars {
+            display: flex;
+            gap: 2px;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bar {
+            width: 3px;
+            background: linear-gradient(to top, #667eea, #764ba2);
+            border-radius: 2px;
+            transition: height 0.1s ease;
+            height: 10%;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            color: white;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .sensitivity-control {
+            margin-bottom: 20px;
+        }
+
+        .sensitivity-label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+            border: none;
+        }
+
+        .sensitivity-value {
+            text-align: center;
+            color: #667eea;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            touch-action: manipulation;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, #ff9800, #e68900);
+            color: white;
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #f44336, #da190b);
+            color: white;
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+            border-radius: 10px;
+        }
+
+        .results h2 {
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .debug-info {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .permission-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Compteur de Proclamations</h1>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <div class="status idle" id="status">
+            En attente...
+        </div>
+
+        <div class="visualizer">
+            <div class="visualizer-bars" id="visualizer"></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Répétitions</div>
+                <div class="stat-value" id="count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Temps</div>
+                <div class="stat-value" id="timer">00:00</div>
+            </div>
+        </div>
+
+        <div class="sensitivity-control">
+            <label class="sensitivity-label" for="sensitivity">
+                Sensibilité : <span id="sensitivityValue">30</span>
+            </label>
+            <input type="range" id="sensitivity" min="10" max="80" value="30">
+        </div>
+
+        <button id="permissionBtn" class="permission-btn" style="display: none;">
+            📱 Autoriser le microphone
+        </button>
+
+        <div class="controls">
+            <button id="startBtn" class="btn-start">Démarrer</button>
+            <button id="pauseBtn" class="btn-pause" disabled>Pause</button>
+            <button id="stopBtn" class="btn-stop" disabled>Stop</button>
+        </div>
+
+        <div class="results" id="results">
+            <h2>📊 Résumé Final</h2>
+            <div class="result-item">
+                <span>Total répétitions:</span>
+                <strong id="finalCount">0</strong>
+            </div>
+            <div class="result-item">
+                <span>Temps total:</span>
+                <strong id="finalTime">00:00</strong>
+            </div>
+            <div class="result-item">
+                <span>Moyenne/minute:</span>
+                <strong id="avgPerMinute">0</strong>
+            </div>
+        </div>
+
+        <div class="debug-info" id="debugInfo"></div>
+    </div>
+
+    <script>
+        // Variables globales
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let stream = null;
+        let isRecording = false;
+        let isPaused = false;
+        let count = 0;
+        let startTime = null;
+        let elapsedTime = 0;
+        let timerInterval = null;
+        let isSpeaking = false;
+        let silenceTimeout = null;
+        let animationId = null;
+
+        // Éléments DOM
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const permissionBtn = document.getElementById('permissionBtn');
+        const countDisplay = document.getElementById('count');
+        const timerDisplay = document.getElementById('timer');
+        const statusDisplay = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+        const visualizer = document.getElementById('visualizer');
+        const sensitivitySlider = document.getElementById('sensitivity');
+        const sensitivityValue = document.getElementById('sensitivityValue');
+        const errorMessage = document.getElementById('errorMessage');
+        const debugInfo = document.getElementById('debugInfo');
+
+        // Créer les barres du visualiseur
+        function createBars() {
+            visualizer.innerHTML = '';
+            for (let i = 0; i < 20; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = '10%';
+                visualizer.appendChild(bar);
+            }
+        }
+        createBars();
+
+        // Afficher les infos de debug
+        function showDebug(message) {
+            console.log(message);
+            debugInfo.textContent = `Debug: ${message}`;
+        }
+
+        // Afficher les erreurs
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+            showDebug(`Erreur: ${message}`);
+        }
+
+        // Cacher les erreurs
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+
+        // Gestion de la sensibilité
+        sensitivitySlider.addEventListener('input', (e) => {
+            sensitivityValue.textContent = e.target.value;
+        });
+
+        // Formatage du temps
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Mise à jour du timer
+        function updateTimer() {
+            if (!isPaused && isRecording) {
+                const currentTime = Date.now();
+                const totalElapsed = elapsedTime + (currentTime - startTime) / 1000;
+                timerDisplay.textContent = formatTime(totalElapsed);
+            }
+        }
+
+        // Analyse audio et visualisation
+        function processAudio() {
+            if (!analyser || !isRecording) return;
+
+            const bars = visualizer.querySelectorAll('.bar');
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            const analyze = () => {
+                if (!isRecording) return;
+                
+                animationId = requestAnimationFrame(analyze);
+                
+                if (isPaused) {
+                    bars.forEach(bar => bar.style.height = '10%');
+                    return;
+                }
+                
+                analyser.getByteFrequencyData(dataArray);
+                
+                // Visualisation
+                const step = Math.floor(bufferLength / bars.length);
+                bars.forEach((bar, index) => {
+                    const value = dataArray[index * step];
+                    const height = Math.max(10, (value / 255) * 100);
+                    bar.style.height = `${height}%`;
+                });
+                
+                // Calcul du volume moyen
+                let sum = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    sum += dataArray[i];
+                }
+                const average = sum / bufferLength;
+                const threshold = parseInt(sensitivitySlider.value);
+                
+                // Détection de la parole
+                if (average > threshold) {
+                    if (!isSpeaking) {
+                        isSpeaking = true;
+                        clearTimeout(silenceTimeout);
+                        showDebug(`Parole détectée - Volume: ${average.toFixed(0)}`);
+                    }
+                } else {
+                    if (isSpeaking) {
+                        clearTimeout(silenceTimeout);
+                        silenceTimeout = setTimeout(() => {
+                            if (isSpeaking) {
+                                count++;
+                                countDisplay.textContent = count;
+                                countDisplay.style.transform = 'scale(1.3)';
+                                setTimeout(() => {
+                                    countDisplay.style.transform = 'scale(1)';
+                                }, 200);
+                                isSpeaking = false;
+                                showDebug(`Proclamation comptée! Total: ${count}`);
+                            }
+                        }, 800); // Délai de 800ms de silence avant de compter
+                    }
+                }
+            };
+            
+            analyze();
+        }
+
+        // Demander la permission du microphone
+        async function requestMicrophonePermission() {
+            try {
+                showDebug('Demande de permission microphone...');
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    } 
+                });
+                showDebug('Permission accordée!');
+                permissionBtn.style.display = 'none';
+                startBtn.disabled = false;
+                return true;
+            } catch (err) {
+                showError(`Accès au microphone refusé: ${err.message}`);
+                startBtn.disabled = true;
+                permissionBtn.style.display = 'block';
+                return false;
+            }
+        }
+
+        // Démarrer l'enregistrement
+        async function startRecording() {
+            try {
+                hideError();
+                showDebug('Démarrage de l\'enregistrement...');
+                
+                // Vérifier ou demander la permission
+                if (!stream) {
+                    const hasPermission = await requestMicrophonePermission();
+                    if (!hasPermission) return;
+                }
+                
+                // Créer le contexte audio
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.8;
+                
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                
+                isRecording = true;
+                startTime = Date.now();
+                timerInterval = setInterval(updateTimer, 100);
+                
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+                stopBtn.disabled = false;
+                statusDisplay.textContent = '🔴 Enregistrement...';
+                statusDisplay.className = 'status recording';
+                
+                processAudio();
+                showDebug('Enregistrement démarré avec succès!');
+                
+            } catch (err) {
+                showError(`Erreur lors du démarrage: ${err.message}`);
+                console.error('Erreur complète:', err);
+            }
+        }
+
+        // Mettre en pause/reprendre
+        function pauseRecording() {
+            if (isPaused) {
+                // Reprendre
+                isPaused = false;
+                startTime = Date.now();
+                pauseBtn.textContent = 'Pause';
+                statusDisplay.textContent = '🔴 Enregistrement...';
+                statusDisplay.className = 'status recording';
+                showDebug('Enregistrement repris');
+            } else {
+                // Pause
+                isPaused = true;
+                elapsedTime += (Date.now() - startTime) / 1000;
+                pauseBtn.textContent = 'Reprendre';
+                statusDisplay.textContent = '⏸️ En pause';
+                statusDisplay.className = 'status paused';
+                showDebug('Enregistrement en pause');
+            }
+        }
+
+        // Arrêter l'enregistrement
+        function stopRecording() {
+            showDebug('Arrêt de l\'enregistrement...');
+            
+            isRecording = false;
+            isPaused = false;
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            
+            clearInterval(timerInterval);
+            clearTimeout(silenceTimeout);
+            
+            if (!isPaused && startTime) {
+                elapsedTime += (Date.now() - startTime) / 1000;
+            }
+            
+            // Nettoyer l'audio
+            if (microphone) microphone.disconnect();
+            if (analyser) analyser.disconnect();
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            // Garder le stream pour la prochaine fois
+            // (évite de redemander la permission)
+            
+            // Réinitialiser l'interface
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            pauseBtn.textContent = 'Pause';
+            statusDisplay.textContent = '✅ Terminé';
+            statusDisplay.className = 'status idle';
+            
+            // Réinitialiser le visualiseur
+            const bars = visualizer.querySelectorAll('.bar');
+            bars.forEach(bar => bar.style.height = '10%');
+            
+            // Afficher les résultats
+            document.getElementById('finalCount').textContent = count;
+            document.getElementById('finalTime').textContent = formatTime(elapsedTime);
+            const avgPerMin = elapsedTime > 0 ? (count / (elapsedTime / 60)).toFixed(1) : 0;
+            document.getElementById('avgPerMinute').textContent = avgPerMin;
+            resultsDiv.style.display = 'block';
+            
+            showDebug(`Terminé! ${count} répétitions en ${formatTime(elapsedTime)}`);
+            
+            // Réinitialiser pour la prochaine session
+            count = 0;
+            elapsedTime = 0;
+            countDisplay.textContent = '0';
+            timerDisplay.textContent = '00:00';
+        }
+
+        // Gestionnaires d'événements
+        startBtn.addEventListener('click', startRecording);
+        pauseBtn.addEventListener('click', pauseRecording);
+        stopBtn.addEventListener('click', stopRecording);
+        permissionBtn.addEventListener('click', requestMicrophonePermission);
+
+        // Vérifications initiales
+        function checkCompatibility() {
+            showDebug('Vérification de compatibilité...');
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showError('Votre navigateur ne supporte pas l\'accès au microphone');
+                startBtn.disabled = true;
+                showDebug('getUserMedia non supporté');
+                return false;
+            }
+            
+            // Vérifier AudioContext
+            if (!window.AudioContext && !window.webkitAudioContext) {
+                showError('AudioContext non supporté par votre navigateur');
+                startBtn.disabled = true;
+                showDebug('AudioContext non supporté');
+                return false;
+            }
+            
+            showDebug('Navigateur compatible! Prêt à démarrer.');
+            
+            // Sur mobile, proposer directement le bouton de permission
+            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                permissionBtn.style.display = 'block';
+                startBtn.disabled = true;
+                showDebug('Appareil mobile détecté - Cliquez pour autoriser le micro');
+            }
+            
+            return true;
+        }
+
+        // Initialisation
+        window.addEventListener('load', () => {
+            checkCompatibility();
+        });
+
+        // Nettoyage à la fermeture
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+        });
+    </script>
+</body>
+</html>
