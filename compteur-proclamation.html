@@ -1,10 +1,103 @@
-<!DOCTYPE html>
+// Fonction pour garder l'écran allumé (méthode améliorée)
+        async function requestWakeLock() {
+            try {
+                // Méthode 1: Wake Lock API (moderne)
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    showDebug('Wake Lock activé - écran restera allumé');
+                    
+                    // Réactiver le wake lock si la page redevient visible
+                    document.addEventListener('visibilitychange', async () => {
+                        if (wakeLock && document.visibilityState === 'visible' && isRecording) {
+                            wakeLock = await navigator.wakeLock.request('screen');
+                            showDebug('Wake Lock réactivé');
+                        }
+                    });
+                }
+                
+                // Méthode 2: NoSleep.js alternative (vidéo invisible)
+                if (!wakeLock) {
+                    createNoSleepVideo();
+                }
+                
+                // Méthode 3: Garder l'audio actif en arrière-plan
+                keepAudioActive();
+                
+            } catch (err) {
+                showDebug('Wake Lock non disponible: ' + err.message);
+                createNoSleepVideo();
+            }
+        }
+        
+        // Créer une vidéo invisible pour empêcher la veille (fallback)
+        function createNoSleepVideo() {
+            try {
+                noSleepVideo = document.createElement('video');
+                noSleepVideo.setAttribute('playsinline', '');
+                noSleepVideo.setAttribute('webkit-playsinline', '');
+                noSleepVideo.style.position = 'absolute';
+                noSleepVideo.style.width = '1px';
+                noSleepVideo.style.height = '1px';
+                noSleepVideo.style.left = '-100px';
+                
+                // Vidéo minimale en base64 (1 pixel transparent)
+                const videoData = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEwIHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAAD2WIhAA3//728P4FNjuZQQAAAu5tb292AAAAbG12aGQAAAAAAAAAAAAAAAAAAAPoAAAAZAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAACGHRyYWsAAABcdGtoZAAAAAMAAAAAAAAAAAAAAAEAAAAAAAAAZAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAgAAAAIAAAAAACRlZHRzAAAAHGVsc3QAAAAAAAAAAQAAAGQAAAAAAAEAAAAAAZBtZGlhAAAAIG1kaGQAAAAAAAAAAAAAAAAAACgAAAAEAFXEAAAAAAAtaGRscgAAAAAAAAAAdmlkZQAAAAAAAAAAAAAAAFZpZGVvSGFuZGxlcgAAAAE7bWluZgAAABR2bWhkAAAAAQAAAAAAAAAAAAAAJGRpbmYAAAAcZHJlZgAAAAAAAAABAAAADHVybCAAAAABAAAA+3N0YmwAAACXc3RzZAAAAAAAAAABAAAAh2F2YzEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAgACAEgAAABIAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY//8AAAAxYXZjQwFkAAr/4QAYZ2QACqzZX4iIhAAAAwAEAAADAFA8SJZYAQAGaOvjyyLAAAAAGHN0dHMAAAAAAAAAAQAAAAEAAAQAAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAABAAAAAQAAABRzdHN6AAAAAAAAAsUAAAABAAAAFHN0Y28AAAAAAAAAAQAAADAAAABidWR0YQAAAFptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAAC1pbHN0AAAAJal0b28AAAAdZGF0YQAAAAEAAAAATGF2ZjU2LjQwLjEwMQ==';
+                
+                noSleepVideo.src = videoData;
+                noSleepVideo.loop = true;
+                noSleepVideo.muted = true;
+                document.body.appendChild(noSleepVideo);
+                
+                showDebug('NoSleep video créé pour empêcher la veille');
+            } catch (err) {
+                showDebug('Impossible de créer NoSleep video: ' + err.message);
+            }
+        }
+        
+        // Garder l'audio actif même en arrière-plan
+        function keepAudioActive() {
+            // Créer un oscillateur silencieux pour maintenir le contexte audio actif
+            if (audioContext && audioContext.state === 'running') {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.00001; // Volume quasi-inaudible
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.frequency.value = 20000; // Fréquence inaudible
+                oscillator.start();
+                
+                // Arrêter après 1 seconde et relancer périodiquement
+                setTimeout(() => oscillator.stop(), 1000);
+                
+                // Relancer toutes les 5 secondes si en enregistrement
+                if (isRecording) {
+                    setTimeout(keepAudioActive, 5000);
+                }
+            }
+        }
+        
+        // Gérer la visibilité de la page
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                showDebug('App en arrière-plan - tentative de maintien actif');
+                if (isRecording) {
+                    keepAudioActive();
+                }
+            } else {
+                showDebug('App au premier plan');
+                if (isRecording && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                    showDebug('Contexte audio réactivé');
+                }
+            }
+        });<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Compteur de Proclamations</title>
     <style>
         * {
@@ -17,36 +110,89 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 10px;
             touch-action: manipulation;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 80%, rgba(66, 211, 255, 0.2) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(126, 87, 194, 0.2) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 40%, rgba(255, 119, 168, 0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(-20px, -20px) rotate(120deg); }
+            66% { transform: translate(20px, -10px) rotate(240deg); }
         }
 
         .container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            padding: 25px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37),
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
             width: 100%;
             max-width: 400px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cross {
+            text-align: center;
+            font-size: 3em;
+            color: #42d3ff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(66, 211, 255, 0.8),
+                         0 0 60px rgba(66, 211, 255, 0.4);
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { 
+                opacity: 0.8; 
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 1; 
+                transform: scale(1.05);
+            }
         }
 
         h1 {
             text-align: center;
-            color: #333;
+            color: #ffffff;
             margin-bottom: 20px;
-            font-size: 1.5em;
+            font-size: 1.2em;
+            font-weight: 600;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            white-space: nowrap;
         }
 
         .error-message {
             display: none;
-            background: #ffebee;
-            color: #c62828;
+            background: rgba(255, 107, 107, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 15px;
             margin-bottom: 20px;
             text-align: center;
             font-size: 0.9em;
@@ -59,26 +205,31 @@
         .status {
             text-align: center;
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 15px;
             margin-bottom: 20px;
             font-weight: 600;
-            font-size: 1.1em;
+            font-size: 1.05em;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
         }
 
         .status.idle {
-            background: #e3f2fd;
-            color: #1976d2;
+            background: rgba(66, 165, 245, 0.2);
+            border-color: rgba(66, 165, 245, 0.3);
         }
 
         .status.recording {
-            background: #e8f5e9;
-            color: #388e3c;
+            background: rgba(102, 187, 106, 0.2);
+            border-color: rgba(102, 187, 106, 0.3);
             animation: pulse 2s infinite;
         }
 
         .status.paused {
-            background: #fff3e0;
-            color: #f57c00;
+            background: rgba(255, 167, 38, 0.2);
+            border-color: rgba(255, 167, 38, 0.3);
         }
 
         @keyframes pulse {
@@ -88,29 +239,54 @@
 
         .visualizer {
             height: 80px;
-            background: #f5f5f5;
-            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
             margin-bottom: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .visualizer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(66, 211, 255, 0.1), 
+                transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
 
         .visualizer-bars {
             display: flex;
-            gap: 2px;
+            gap: 3px;
             height: 100%;
             align-items: center;
             justify-content: center;
+            position: relative;
+            z-index: 1;
         }
 
         .bar {
-            width: 3px;
-            background: linear-gradient(to top, #667eea, #764ba2);
+            width: 4px;
+            background: linear-gradient(to top, 
+                rgba(66, 211, 255, 0.8), 
+                rgba(126, 87, 194, 0.8));
             border-radius: 2px;
             transition: height 0.1s ease;
             height: 10%;
+            box-shadow: 0 0 10px rgba(66, 211, 255, 0.3);
         }
 
         .stats {
@@ -121,41 +297,70 @@
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
             padding: 15px;
             text-align: center;
-            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 119, 168, 0.1) 0%, 
+                rgba(66, 211, 255, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
         }
 
         .stat-label {
             font-size: 0.85em;
-            opacity: 0.9;
+            color: rgba(255, 255, 255, 0.7);
             margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .stat-value {
             font-size: 2em;
             font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         .sensitivity-control {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
         }
 
         .sensitivity-label {
             display: block;
             margin-bottom: 10px;
-            color: #555;
+            color: rgba(255, 255, 255, 0.9);
             font-weight: 500;
             font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         input[type="range"] {
             width: 100%;
             height: 6px;
             border-radius: 3px;
-            background: #ddd;
+            background: rgba(255, 255, 255, 0.2);
             outline: none;
             -webkit-appearance: none;
             appearance: none;
@@ -164,27 +369,35 @@
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 25px;
-            height: 25px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #42d3ff, #7e57c2);
             cursor: pointer;
+            box-shadow: 0 0 20px rgba(66, 211, 255, 0.5);
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
         }
 
         input[type="range"]::-moz-range-thumb {
-            width: 25px;
-            height: 25px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #42d3ff, #7e57c2);
             cursor: pointer;
             border: none;
+            box-shadow: 0 0 20px rgba(66, 211, 255, 0.5);
         }
 
         .sensitivity-value {
             text-align: center;
-            color: #667eea;
+            color: #42d3ff;
             font-weight: bold;
             margin-top: 5px;
+            text-shadow: 0 0 10px rgba(66, 211, 255, 0.5);
         }
 
         .controls {
@@ -196,30 +409,48 @@
         button {
             flex: 1;
             padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1em;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            font-size: 0.95em;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             touch-action: manipulation;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        button:hover::before {
+            transform: translateX(100%);
         }
 
         .btn-start {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            color: white;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(69, 160, 73, 0.3));
+            border-color: rgba(76, 175, 80, 0.4);
         }
 
         .btn-pause {
-            background: linear-gradient(135deg, #ff9800, #e68900);
-            color: white;
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(230, 137, 0, 0.3));
+            border-color: rgba(255, 152, 0, 0.4);
         }
 
         .btn-stop {
-            background: linear-gradient(135deg, #f44336, #da190b);
-            color: white;
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(218, 25, 11, 0.3));
+            border-color: rgba(244, 67, 54, 0.4);
         }
 
         button:active:not(:disabled) {
@@ -227,62 +458,92 @@
         }
 
         button:disabled {
-            opacity: 0.5;
+            opacity: 0.3;
             cursor: not-allowed;
         }
 
         .results {
             display: none;
             margin-top: 20px;
-            padding: 15px;
-            background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-            border-radius: 10px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
         }
 
         .results h2 {
-            color: #333;
+            color: #ffffff;
             margin-bottom: 15px;
             text-align: center;
             font-size: 1.2em;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         .result-item {
             display: flex;
             justify-content: space-between;
             padding: 10px 0;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .result-item:last-child {
             border-bottom: none;
         }
 
+        .result-item strong {
+            color: #42d3ff;
+            text-shadow: 0 0 10px rgba(66, 211, 255, 0.3);
+        }
+
         .debug-info {
             margin-top: 20px;
             padding: 10px;
-            background: #f5f5f5;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             font-size: 0.8em;
-            color: #666;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: monospace;
         }
 
         .permission-btn {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, rgba(126, 87, 194, 0.3), rgba(66, 211, 255, 0.3));
             color: white;
-            border: none;
-            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
             font-size: 1em;
             font-weight: 600;
             cursor: pointer;
             margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .permission-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(66, 211, 255, 0.3);
+        }
+
+        .version {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.75em;
+            font-family: monospace;
+            letter-spacing: 1px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎤 Compteur de Proclamations</h1>
+        <div class="cross">✝</div>
+        <h1>COMPTEUR DE PROCLAMATIONS</h1>
         
         <div class="error-message" id="errorMessage"></div>
         
@@ -319,6 +580,13 @@
             <input type="range" id="silence" min="10" max="40" value="20">
         </div>
 
+        <div class="sensitivity-control">
+            <label class="sensitivity-label" for="protection">
+                Protection double comptage : <span id="protectionValue">3</span>s minimum
+            </label>
+            <input type="range" id="protection" min="20" max="60" value="30">
+        </div>
+
         <button id="permissionBtn" class="permission-btn" style="display: none;">
             📱 Autoriser le microphone
         </button>
@@ -346,6 +614,8 @@
         </div>
 
         <div class="debug-info" id="debugInfo"></div>
+        
+        <div class="version">V1.0</div>
     </div>
 
     <script>
@@ -363,6 +633,10 @@
         let isSpeaking = false;
         let silenceTimeout = null;
         let animationId = null;
+        let lastCountTime = 0;
+        let minTimeBetweenCounts = 3000; // Minimum 3 secondes entre deux comptages
+        let wakeLock = null;
+        let noSleepVideo = null;
 
         // Éléments DOM
         const startBtn = document.getElementById('startBtn');
@@ -378,6 +652,8 @@
         const sensitivityValue = document.getElementById('sensitivityValue');
         const silenceSlider = document.getElementById('silence');
         const silenceValue = document.getElementById('silenceValue');
+        const protectionSlider = document.getElementById('protection');
+        const protectionValue = document.getElementById('protectionValue');
         const errorMessage = document.getElementById('errorMessage');
         const debugInfo = document.getElementById('debugInfo');
 
@@ -420,6 +696,13 @@
         silenceSlider.addEventListener('input', (e) => {
             const value = e.target.value / 10;
             silenceValue.textContent = value.toFixed(1);
+        });
+
+        // Gestion de la protection contre le double comptage
+        protectionSlider.addEventListener('input', (e) => {
+            const value = e.target.value / 10;
+            protectionValue.textContent = value.toFixed(0);
+            minTimeBetweenCounts = value * 1000;
         });
 
         // Fonction pour obtenir le délai de silence en millisecondes
@@ -491,14 +774,21 @@
                         clearTimeout(silenceTimeout);
                         silenceTimeout = setTimeout(() => {
                             if (isSpeaking) {
-                                count++;
-                                countDisplay.textContent = count;
-                                countDisplay.style.transform = 'scale(1.3)';
-                                setTimeout(() => {
-                                    countDisplay.style.transform = 'scale(1)';
-                                }, 200);
+                                const now = Date.now();
+                                // Vérifier qu'au moins 3 secondes se sont écoulées depuis le dernier comptage
+                                if (now - lastCountTime > minTimeBetweenCounts) {
+                                    count++;
+                                    countDisplay.textContent = count;
+                                    countDisplay.style.transform = 'scale(1.3)';
+                                    setTimeout(() => {
+                                        countDisplay.style.transform = 'scale(1)';
+                                    }, 200);
+                                    lastCountTime = now;
+                                    showDebug(`Proclamation comptée! Total: ${count}`);
+                                } else {
+                                    showDebug(`Double comptage évité (trop rapide)`);
+                                }
                                 isSpeaking = false;
-                                showDebug(`Proclamation comptée! Total: ${count}`);
                             }
                         }, getSilenceDelay()); // Utilise le délai configurable
                     }
@@ -537,6 +827,19 @@
                 hideError();
                 showDebug('Démarrage de l\'enregistrement...');
                 
+                // Activer le wake lock et anti-veille
+                await requestWakeLock();
+                
+                // Jouer la vidéo silencieuse si elle existe
+                if (noSleepVideo) {
+                    try {
+                        await noSleepVideo.play();
+                        showDebug('NoSleep video démarrée');
+                    } catch (err) {
+                        showDebug('Impossible de démarrer NoSleep: ' + err.message);
+                    }
+                }
+                
                 // Vérifier ou demander la permission
                 if (!stream) {
                     const hasPermission = await requestMicrophonePermission();
@@ -563,7 +866,8 @@
                 statusDisplay.className = 'status recording';
                 
                 processAudio();
-                showDebug('Enregistrement démarré avec succès!');
+                keepAudioActive(); // Maintenir l'audio actif
+                showDebug('Enregistrement démarré - Mode anti-veille activé');
                 
             } catch (err) {
                 showError(`Erreur lors du démarrage: ${err.message}`);
@@ -595,6 +899,19 @@
         // Arrêter l'enregistrement
         function stopRecording() {
             showDebug('Arrêt de l\'enregistrement...');
+            
+            // Libérer le wake lock
+            if (wakeLock) {
+                wakeLock.release();
+                wakeLock = null;
+                showDebug('Wake Lock libéré');
+            }
+            
+            // Arrêter la vidéo NoSleep
+            if (noSleepVideo) {
+                noSleepVideo.pause();
+                showDebug('NoSleep video arrêtée');
+            }
             
             isRecording = false;
             isPaused = false;
