@@ -1,103 +1,10 @@
-// Fonction pour garder l'écran allumé (méthode améliorée)
-        async function requestWakeLock() {
-            try {
-                // Méthode 1: Wake Lock API (moderne)
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    showDebug('Wake Lock activé - écran restera allumé');
-                    
-                    // Réactiver le wake lock si la page redevient visible
-                    document.addEventListener('visibilitychange', async () => {
-                        if (wakeLock && document.visibilityState === 'visible' && isRecording) {
-                            wakeLock = await navigator.wakeLock.request('screen');
-                            showDebug('Wake Lock réactivé');
-                        }
-                    });
-                }
-                
-                // Méthode 2: NoSleep.js alternative (vidéo invisible)
-                if (!wakeLock) {
-                    createNoSleepVideo();
-                }
-                
-                // Méthode 3: Garder l'audio actif en arrière-plan
-                keepAudioActive();
-                
-            } catch (err) {
-                showDebug('Wake Lock non disponible: ' + err.message);
-                createNoSleepVideo();
-            }
-        }
-        
-        // Créer une vidéo invisible pour empêcher la veille (fallback)
-        function createNoSleepVideo() {
-            try {
-                noSleepVideo = document.createElement('video');
-                noSleepVideo.setAttribute('playsinline', '');
-                noSleepVideo.setAttribute('webkit-playsinline', '');
-                noSleepVideo.style.position = 'absolute';
-                noSleepVideo.style.width = '1px';
-                noSleepVideo.style.height = '1px';
-                noSleepVideo.style.left = '-100px';
-                
-                // Vidéo minimale en base64 (1 pixel transparent)
-                const videoData = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEwIHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAAD2WIhAA3//728P4FNjuZQQAAAu5tb292AAAAbG12aGQAAAAAAAAAAAAAAAAAAAPoAAAAZAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAACGHRyYWsAAABcdGtoZAAAAAMAAAAAAAAAAAAAAAEAAAAAAAAAZAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAgAAAAIAAAAAACRlZHRzAAAAHGVsc3QAAAAAAAAAAQAAAGQAAAAAAAEAAAAAAZBtZGlhAAAAIG1kaGQAAAAAAAAAAAAAAAAAACgAAAAEAFXEAAAAAAAtaGRscgAAAAAAAAAAdmlkZQAAAAAAAAAAAAAAAFZpZGVvSGFuZGxlcgAAAAE7bWluZgAAABR2bWhkAAAAAQAAAAAAAAAAAAAAJGRpbmYAAAAcZHJlZgAAAAAAAAABAAAADHVybCAAAAABAAAA+3N0YmwAAACXc3RzZAAAAAAAAAABAAAAh2F2YzEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAgACAEgAAABIAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY//8AAAAxYXZjQwFkAAr/4QAYZ2QACqzZX4iIhAAAAwAEAAADAFA8SJZYAQAGaOvjyyLAAAAAGHN0dHMAAAAAAAAAAQAAAAEAAAQAAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAABAAAAAQAAABRzdHN6AAAAAAAAAsUAAAABAAAAFHN0Y28AAAAAAAAAAQAAADAAAABidWR0YQAAAFptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAAC1pbHN0AAAAJal0b28AAAAdZGF0YQAAAAEAAAAATGF2ZjU2LjQwLjEwMQ==';
-                
-                noSleepVideo.src = videoData;
-                noSleepVideo.loop = true;
-                noSleepVideo.muted = true;
-                document.body.appendChild(noSleepVideo);
-                
-                showDebug('NoSleep video créé pour empêcher la veille');
-            } catch (err) {
-                showDebug('Impossible de créer NoSleep video: ' + err.message);
-            }
-        }
-        
-        // Garder l'audio actif même en arrière-plan
-        function keepAudioActive() {
-            // Créer un oscillateur silencieux pour maintenir le contexte audio actif
-            if (audioContext && audioContext.state === 'running') {
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                gainNode.gain.value = 0.00001; // Volume quasi-inaudible
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                oscillator.frequency.value = 20000; // Fréquence inaudible
-                oscillator.start();
-                
-                // Arrêter après 1 seconde et relancer périodiquement
-                setTimeout(() => oscillator.stop(), 1000);
-                
-                // Relancer toutes les 5 secondes si en enregistrement
-                if (isRecording) {
-                    setTimeout(keepAudioActive, 5000);
-                }
-            }
-        }
-        
-        // Gérer la visibilité de la page
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                showDebug('App en arrière-plan - tentative de maintien actif');
-                if (isRecording) {
-                    keepAudioActive();
-                }
-            } else {
-                showDebug('App au premier plan');
-                if (isRecording && audioContext.state === 'suspended') {
-                    audioContext.resume();
-                    showDebug('Contexte audio réactivé');
-                }
-            }
-        });<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Compteur de Proclamations</title>
     <style>
         * {
@@ -635,8 +542,6 @@
         let animationId = null;
         let lastCountTime = 0;
         let minTimeBetweenCounts = 3000; // Minimum 3 secondes entre deux comptages
-        let wakeLock = null;
-        let noSleepVideo = null;
 
         // Éléments DOM
         const startBtn = document.getElementById('startBtn');
@@ -827,16 +732,16 @@
                 hideError();
                 showDebug('Démarrage de l\'enregistrement...');
                 
-                // Activer le wake lock et anti-veille
-                await requestWakeLock();
-                
-                // Jouer la vidéo silencieuse si elle existe
-                if (noSleepVideo) {
+                // Empêcher la mise en veille de l'écran
+                if ('wakeLock' in navigator) {
                     try {
-                        await noSleepVideo.play();
-                        showDebug('NoSleep video démarrée');
+                        const wakeLock = await navigator.wakeLock.request('screen');
+                        showDebug('Écran restera allumé pendant l\'enregistrement');
+                        
+                        // Libérer le wake lock quand on arrête
+                        window.currentWakeLock = wakeLock;
                     } catch (err) {
-                        showDebug('Impossible de démarrer NoSleep: ' + err.message);
+                        showDebug('Impossible d\'empêcher la veille: ' + err.message);
                     }
                 }
                 
@@ -866,8 +771,7 @@
                 statusDisplay.className = 'status recording';
                 
                 processAudio();
-                keepAudioActive(); // Maintenir l'audio actif
-                showDebug('Enregistrement démarré - Mode anti-veille activé');
+                showDebug('Enregistrement démarré avec succès!');
                 
             } catch (err) {
                 showError(`Erreur lors du démarrage: ${err.message}`);
@@ -901,16 +805,10 @@
             showDebug('Arrêt de l\'enregistrement...');
             
             // Libérer le wake lock
-            if (wakeLock) {
-                wakeLock.release();
-                wakeLock = null;
-                showDebug('Wake Lock libéré');
-            }
-            
-            // Arrêter la vidéo NoSleep
-            if (noSleepVideo) {
-                noSleepVideo.pause();
-                showDebug('NoSleep video arrêtée');
+            if (window.currentWakeLock) {
+                window.currentWakeLock.release();
+                window.currentWakeLock = null;
+                showDebug('Écran peut maintenant se mettre en veille');
             }
             
             isRecording = false;
